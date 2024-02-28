@@ -1,4 +1,4 @@
-import RoomProvider from "@/context/RoomContext";
+import { RoomProvider } from "@/context/RoomContext";
 import Nav from "./navbar/Nav";
 
 export const metadata = {

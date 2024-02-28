@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { Calls } from '../../../models/Calls';
-import dbConnect from '../../../lib/dbConnect';
+import dbConnect from '../../lib/dbConnect';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   await dbConnect();
@@ -11,6 +11,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(200).json(docs);
     }
   } else {
-    
+
   }
 }

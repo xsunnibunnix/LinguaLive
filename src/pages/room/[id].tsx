@@ -6,8 +6,8 @@ import VideoBox from "@/components/video/videoBox"
 export default function Chatroom() {
   return (
     <div>
-      <ChatBox></ChatBox>
-      <VideoBox></VideoBox>
+      <ChatBox/>
+      <VideoBox/>
     </div>
   )
 };

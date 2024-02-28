@@ -1,8 +1,6 @@
-'use client';
-// here is where the chatroom page is gonna be served, start rendering video componenent and chat component here
 import ChatBox from '@/components/chat/chatBox';
 import VideoBox from '@/components/video/videoBox';
-import { RoomContext } from '@/context/RoomContext';
+import { useRoomContext } from '@/context/RoomContext';
 import { useRouter } from 'next/router';
 import { useContext, useEffect, useState } from 'react';
 
@@ -17,17 +15,18 @@ type chatBoxStateType = {
 
 
 export default function Chatroom() {
-  
   const router = useRouter();
   const id = router.query.id;
-  const { ws } = useContext(RoomContext);
+  console.log(id);
+  const io = useRoomContext();
 
-  useEffect(() => {
-    ws.addEventListener('open', () => {
-      ws.send(JSON.stringify({type: 'join-room', roomId: id}))
-    })
-  }, [id]);
-  
+  // useEffect(() => {
+  //   ws.addEventListener('open', () => {
+  //     ws.send(JSON.stringify({type: 'join-room', roomId: id}))
+  //   })
+  // }, [id]);
+
+    
   
   const chatBoxState: chatBoxStateType = {
     messages: [
@@ -59,7 +58,7 @@ export default function Chatroom() {
   return (
     <div>
       <ChatBox state={state} setState={setState}></ChatBox>
-      <VideoBox></VideoBox>
+      <VideoBox/>
     </div>
   );
 }

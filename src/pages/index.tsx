@@ -1,9 +1,6 @@
-import { RoomContext } from '@/context/RoomContext';
-import type { InferGetServerSidePropsType, GetServerSideProps } from 'next';
-import Link from 'next/link';
+import type { GetServerSideProps } from 'next';
 import NewRoomForm from '@/components/NewRoomForm';
 import { useRouter } from 'next/router';
-import { useContext, useState } from 'react';
 
 declare global {
   interface Window {
@@ -34,12 +31,14 @@ export const getServerSideProps: GetServerSideProps = async () => {
 }
 
 function Home({ chatrooms }: HomeProps) {
-  const { ws } = useContext(RoomContext);
   const router = useRouter();
 
-  const joinRoom = async (id: string) => {
-    await ws.send(JSON.stringify({ type: 'create-room', room: id }));
-  };
+  // const joinRoom = async (id: string) => {
+  //   await ws.send(JSON.stringify({ type: 'create-room', room: id }));
+  // };
+
+  // TODO Add a check if there is a session before pushing to the room
+  const joinRoom = (id:any) => router.push(`/chatroom/${id}`);
 
   const chatroomList = chatrooms.map(room => {
     const { _id, name, language } = room;
