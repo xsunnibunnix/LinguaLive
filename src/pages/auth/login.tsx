@@ -43,14 +43,14 @@ const Login = ({providers}:LoginProps) => {
         <div>
           <p className="text-center mb-1">
             Or{' '}
-            <Link href="/signup/signup" className="text-slate-900 hover:text-blue-700 font-semibold hover:cursor-pointer hover:underline">
+            <Link href="/auth/signup" className="text-slate-900 hover:text-blue-700 font-semibold hover:cursor-pointer hover:underline">
               register
             </Link>{' '}
             if you do not have an account.
           </p>
           <p className="text-center mb-1">
             Click {' '}
-            <Link href="/resetpw/resetpw" className=" text-slate-900 hover:text-blue-700 font-semibold hover:cursor-pointer hover:underline">
+            <Link href="/auth/resetpw" className=" text-slate-900 hover:text-blue-700 font-semibold hover:cursor-pointer hover:underline">
               here
             </Link>{' '}
             if you need to reset your password.
