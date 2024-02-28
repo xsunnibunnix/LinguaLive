@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import { useSession, signIn, getProviders } from 'next-auth/react';
 import { useRouter } from 'next/router';
-import type { GetServerSidePropsContext, InferGetServerSidePropsType, GetServerSideProps } from "next";
+import type { GetServerSidePropsContext } from "next";
 import { getServerSession } from "next-auth/next"
 import type { Session } from "next-auth"
 import { authOptions } from "../api/auth/[...nextauth]";
-import LoginForm from '@/components/LoginForm';
+import LoginForm from '@/components/login/LoginForm';
 import { AppProviders } from 'next-auth/providers/index';
 
 interface LoginProps {
@@ -33,6 +33,8 @@ const Login = ({providers}:LoginProps) => {
   const router = useRouter();
   const { data: session } = useSession();
   if (session) router.push('/');
+
+  // TODO Reset Password functionality
 
   return (
     <div className="bg-base-100 bg-opacity-20 w-3/4 h-max p-10 mt-8 rounded-lg">

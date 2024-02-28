@@ -3,6 +3,7 @@ import type { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import GithubProvider from "next-auth/providers/github";
 import CredentialsProvider from "next-auth/providers/credentials";
+import bcrypt from 'bcrypt';
 import dbConnect from "@/lib/dbConnect";
 import User from "../../../../models/User";
 
@@ -19,14 +20,11 @@ export const authOptions: NextAuthOptions = {
       name: "Credentials",
       credentials: {
         username: { label: "Username", type: "text" },
-        email: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials, req) {
-        console.log(credentials)
-        const { username, email, password } = credentials as {
+        const { username, password } = credentials as {
           username: string;
-          email: string;
           password: string;
         };
 
@@ -35,13 +33,15 @@ export const authOptions: NextAuthOptions = {
           console.log('Connected to MongoDB database in NextAuth route')
 
           // check if user already exists
-          // TODO add logic to verify password
-          // TODO add password hashing
-          const userExists = await User.findOne({ username, email, password });
-          console.log('user found', userExists);
+          const user = await User.findOne({ username });
+          console.log('user', user);
+          if (!user) return null;
 
-          if (userExists) return userExists;
-          else return null;
+          // check if passwords match
+          const passwordsMatch = await bcrypt.compare(password, user.password);
+          console.log('passwords match: ', passwordsMatch);
+          if (!passwordsMatch) return null;
+          return user;
         } catch (error) {
           throw new Error('credentials invalid or database connection failed in auth route')
         }
@@ -56,39 +56,15 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_SECRET,
     }),
   ],
-  secret: process.env.NEXTAUTH_SECRET,
-  pages: {
-    signIn: '/auth/login'
+  session: {
+    strategy: 'jwt',
   },
-  callbacks: {
-    async signIn(credentials) {
-      console.log('in the signIn function')
-      console.log(credentials)
-
-      try {
-        await dbConnect();
-        console.log('Connected to MongoDB database in signIn function')
-        // // check if user already exists
-        // const userExists = await User.findOne({ email: profile?.email });
-        // // // if not, create a new user
-        // if (!userExists) {
-        //   await User.create({
-        //     email: profile?.email,
-        //     username: profile?.name?.replace(/\s/g, '').toLowerCase(),
-        //     profile_pic: profile?.image || profile?.picture
-        //   })
-        // }
-        return true;
-      } catch (error) {
-        console.error(error);
-        return false;
-      }
-    }
-  }
+  secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === 'development',
+  pages: {
+    signIn: '/auth/login',
+    newUser: '/auth/signup'
+  },
 }
 
 export default NextAuth(authOptions);
-
-function authorize(credentials: any, req: any): any {
-  throw new Error("Function not implemented.");
-}

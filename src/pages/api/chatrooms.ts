@@ -10,8 +10,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await dbConnect();
     console.log('Connected to the MongoDB database');
   } catch (error) {
-  
-}
+    console.log(error);
+  }
   // await dbConnect()
   // .then(() => "Connected to MongoDB Database")
   // .catch((error) => {

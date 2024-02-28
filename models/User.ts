@@ -6,7 +6,7 @@ const UserSchema = new mongoose.Schema({
   password: {type: String, default: ''},
   nativeLang: {type: String, default: ''},
   learningLang: {type: String, default: ''},
-  profile_pic: {
+  image: {
     type: String,
     validate: {
         validator: (val: string) => {

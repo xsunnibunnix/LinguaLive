@@ -21,7 +21,6 @@ type HomeProps = {
   chatrooms: chatrooms
 }
 
-// Will need to fetch list of chatrooms from database here
 export const getServerSideProps: GetServerSideProps = async () => {
   const res = await fetch(`${process.env.NEXTAUTH_URL}/api/chatrooms`, {
     cache: 'no-store'
