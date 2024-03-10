@@ -1,5 +1,4 @@
 import ChatBox from '@/components/chat/chatBox';
-import VideoBox from '@/components/video/videoBox';
 import { useRoomContext } from '@/context/RoomContext';
 import { useRouter } from 'next/router';
 import { useContext, useEffect, useState } from 'react';
@@ -58,7 +57,6 @@ export default function Chatroom() {
   return (
     <div>
       <ChatBox state={state} setState={setState}></ChatBox>
-      <VideoBox/>
     </div>
   );
 }

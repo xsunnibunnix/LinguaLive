@@ -1,4 +1,3 @@
-import { RoomProvider } from "@/context/RoomContext";
 import Nav from "./navbar/Nav";
 
 export const metadata = {
@@ -12,16 +11,12 @@ type LayoutProps = {
 
 const Layout = ({children}: LayoutProps) => {
   return (
-    <RoomProvider>
-      <div className='main'>
-        <div className='gradient'/>
-      </div>
-
-      <main className="app">
+    <>
+      <main className='app'>
         <Nav />
         {children}
-        </main>
-    </RoomProvider>
+      </main>
+    </>
   )
 }
 

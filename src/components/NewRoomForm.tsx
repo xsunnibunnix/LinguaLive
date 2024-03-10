@@ -57,8 +57,8 @@ const NewRoomForm = ({onClose}:NewRoomFormProps) => {
           <p className="text-error w-4/5 mx-1 py-1 text-xs">Room name already exists. Please enter a different name.</p>
         }
         <p className="py-4 font-medium text-lg">Select a language</p>
-        <select className="select select-bordered w-full max-w-xs">
-          <option value="" selected disabled hidden>Language</option>
+        <select defaultValue='language' className="select select-bordered w-full max-w-xs">
+          <option value="language" disabled hidden>Select a language...</option>
           {languages.map((language, i) => <option key={`LanguageOption-${i}`}value={language}>{language}</option>)}
         </select>
         {emptyName && emptyLanguage && (

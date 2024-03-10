@@ -21,7 +21,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === 'POST') {
     const { name, language } = req.body;
     // check if room name exists first
-    const roomNameExists = await Chatroom.find({ name });
+    const roomNameExists = await Chatroom.findOne({ name });
     if (roomNameExists) {
       return res.status(400).json(null);
     }

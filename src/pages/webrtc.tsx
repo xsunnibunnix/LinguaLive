@@ -1,184 +1,182 @@
-'use client';
+import { useEffect, useState, useRef } from "react";
+import { useRoomContext } from '@/context/RoomContext';
+import useMediaStream from "@/lib/getUserMedia";
+import usePeer from "@/hooks/usePeer";
+import VideoPlayer from "@/components/video/VideoPlayer";
 
-import { useEffect, useState, useContext } from "react";
-import { RoomContext } from '@/context/RoomContext';
 
 const webrtc = () => {
-  const [pc, setPC] = useState<RTCPeerConnection | null>(null)
-  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
-  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
-  const [canCall, setCanCall] = useState(false);
-  const [canAnswer, setCanAnswer] = useState(false);
-  const { ws } = useContext(RoomContext);
+  const socket = useRoomContext();
+  const [callStarted, setCallStarted] = useState(false);
+  const [callAnswered, setCallAnswered] = useState(false);
+  // const [offersAvailable, setOffersAvailable] = useState(false);
+  const [offers, setOffers] = useState<any[]>([]);
+  const [remoteStreams, setRemoteStreams] = useState<MediaStream[]>([]);
+  const [myStream, setMyStream] = useState<MediaStream | null>(null);
+  const { peerConnection, myId, didIOffer, iceCandidateListener, stateChangeListener } = usePeer(socket!);
+
+  // console.log('offer state', offers);
+  // console.log('didIOffer', didIOffer.current);
 
 
-  const servers = {
-    iceServers: [
-      {
-        urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302']
-      }
-    ],
-    iceCandidatePoolSize: 10,
-  }
-
+  // Peer Connection and Socket listeners
   useEffect(() => {
-    const connection = new RTCPeerConnection();
-    setPC(() => connection);
-  }, []);
+    peerConnection?.addEventListener('signalingstatechange', stateChangeListener);
+    peerConnection?.addEventListener('icecandidate', iceCandidateListener);
+    peerConnection?.addEventListener('track', e => {
+      console.log('Received track from other peer')
+      console.log(e);
+      setRemoteStreams(prev => {
+        const newState = prev.concat(e.streams[0]);
+        return newState;
+      })
+    })
 
-  const handleClick = async () => {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    const remoteStream = new MediaStream();
-    setLocalStream(() => stream)
-    setRemoteStream(() => remoteStream);
-    setCanCall(true);
-  }
+    socket?.on('newOfferAwaiting', offer => {
+      if (!callStarted) setCallStarted(true);
+      setOffers(offer);
+    })
 
-  console.log('peer connection', pc)
-  console.log('local stream',localStream);
-  console.log('remote stream', remoteStream);
-
-  useEffect(() => {
-    // Push tracks from local stream to peer connection
-    // console.log('tracks', localStream?.getTracks())
-    localStream?.getTracks().forEach(track => {
-      pc?.addTrack(track, localStream);
+    socket?.on('availableOffers', receivedOffers => {
+      console.log('in AvailableOffers listener')
+      if (!callStarted) setCallStarted(true);
+      setOffers(receivedOffers);
     });
 
-    // Pull tracks from remote stream, add to video stream
-    if (pc) {
-      pc.ontrack = event => {
-        console.log('remote tracks', event)
-        event.streams[0].getTracks().forEach(track => {
-          remoteStream?.addTrack(track)
-        })
+    socket?.on('answerResponse', ({ user, answer }) => {
+      console.log(`Received an answer from ${user}`);
+      peerConnection?.setRemoteDescription(answer);
+    });
+
+    return () => {
+      socket?.removeAllListeners('newOfferAwaiting');
+      socket?.removeAllListeners('availableOffers');
+      socket?.removeAllListeners('answerResponse');
+    }
+  }, [socket]);
+
+
+  // TODO Need to edit handleStartCall to emit a Room ID to id the socket instead of userID
+  // Initiate the call, get my user media, add tracks to the peer connection
+  const handleStartCall = async () => {
+    if (!socket) return;
+    setCallStarted(true);
+
+    try {
+      const stream = await useMediaStream();
+      if (stream) {
+        setMyStream(stream);
+        stream.getTracks().forEach(track => peerConnection?.addTrack(track, stream));
       }
-      pc.onsignalingstatechange = event => console.log('signaling state change', event);
-    }
-  }, [localStream, remoteStream])
-  
 
-  // NEED TO ADD A GET REQUEST FOR CALLS DOCS SOMEWHERE AND USE ID FOR THE CHATROOM OR USE CHATROOM COLLECTION
-    // EACH ROOM WILL HAVE A UNIQUE ID THAT IS GRABBED PROBABLY FROM HOMEPAGE
-      // MIGHT NEED TO KEEP A CONNECT BUTTON IN THE CHATROOM PAGE TO SET THE LOCAL STREAM?
-
-  
-  // ---------Calling----------
-  const callClick = async () => {
-    if (!canCall) return;
-
-    const offerDescription = await pc?.createOffer();
-    await pc?.setLocalDescription(offerDescription);
-    const offer = {
-      sdp: offerDescription?.sdp,
-      type: offerDescription?.type,
-    }
-
-    await ws.send(JSON.stringify({ type: 'new-offer', offer }));
-
-    if (pc) {
-      pc.onicecandidate = event => {
-        event.candidate &&
-        // Send the ICE candidate to the remote peer
-          ws.send(JSON.stringify({ type: 'ice-candidate', candidate: event.candidate }));
-      }
-    }
-    setCanCall(false);
-  }
-  
-  ws.onmessage = async (message: any) => {
-    const data = JSON.parse(message.data);
-    console.log('message from server', data);
-    switch (data.type) {
-      case 'ice-candidate':
-        // console.log(data.candidate);
-        if (!pc) {
-          console.error('no peerconnection');
-        }
-        if (!data.candidate) {
-          await pc?.addIceCandidate(undefined);
-        } else {
-          pc?.addIceCandidate(new RTCIceCandidate(data.candidate));
-        }
-        break;
-      case 'answers':
-        // when answer received
-        console.log('answer', data.answer);
-        console.log('pc after answer', pc);
-        if (!pc?.currentRemoteDescription && data?.answer) {
-          const answerDescription = new RTCSessionDescription(data.answer);
-          pc?.setRemoteDescription(answerDescription);
-        }
-        break;
-      case 'offers':
-        // when offer received
-        console.log('offer', data.offers);
-        console.log('pc after offer', pc);
-        const offerDescription = data.offers;
-        await pc?.setRemoteDescription(new RTCSessionDescription(offerDescription))
-      
+      console.log("Creating offer...")
+      const offer = await peerConnection?.createOffer();
+      peerConnection?.setLocalDescription(offer);
+      didIOffer.current = true;
+      socket?.emit('newOffer', offer);
+      socket?.on('receivedIceCandidateFromServer', (iceCandidate: RTCIceCandidate) => {
+        peerConnection?.addIceCandidate(iceCandidate);
+        console.log('Adding ice candidate');
+      });
+    } catch (error) {
+      console.log(error);
     }
   }
 
-  // ---------Answering----------
-  const answerClick = async () => {
-    // if (!canAnswer) return;
-      // on click grab the chatroom id, query DB for call doc with the id and get answerCandidates on that document
-    if (pc) {
-      pc.onicecandidate = event => {
-        event.candidate &&
-          // send answer candidates
-          ws.send(JSON.stringify({ type: 'ice-candidate', candidate: event.candidate, pc }));
-        console.log('event candidate', event.candidate);
+  // Answer the call
+  const handleAnswerCall = async ({ offererUser, offer }: any) => {
+    if (!socket) return;
+    setCallAnswered(true);
+    console.log(offers);
+    try {
+      const stream = await useMediaStream();
+      if (stream) {
+        setMyStream(stream);
+        stream.getTracks().forEach(track => peerConnection?.addTrack(track, stream));
       }
-    }
-    const answerDescription = await pc?.createAnswer();
-    
-    if (answerDescription) {
-      await pc?.setLocalDescription(answerDescription);
+    } catch (error) {
+      console.log(error);
     }
 
-      const answer = {
-        type: answerDescription?.type,
-        sdp: answerDescription?.sdp
-      }
+    console.log('offer in handleAnswerCall', offer);
+    try {
+      await peerConnection?.setRemoteDescription(offer);
+      console.log('Creating answer...');
+      const answer = await peerConnection?.createAnswer();
+      await peerConnection?.setLocalDescription(answer);
+      const offerIceCandidates: RTCIceCandidate[] = await socket?.emitWithAck('newAnswer', { answeredOffer: offererUser, answer });
+      offerIceCandidates.forEach(c => {
+        peerConnection?.addIceCandidate(c);
+        console.log("Adding offerer ice candidates")
+      });
+      socket?.on('receivedIceCandidateFromServer', (iceCandidate: RTCIceCandidate) => {
+        peerConnection?.addIceCandidate(iceCandidate);
+        console.log('Adding ice candidate');
+      });
+    } catch (error) {
+      console.log(error);
+    }
 
-      await ws.send(JSON.stringify({ type: 'new-answer', answer }));
-      
   }
-    
+
   const handleMute = () => {
-    localStream?.getAudioTracks().forEach(track => {
+    myStream?.getAudioTracks().forEach(track => {
       track.enabled = !track.enabled
     })
   }
   const handleCamOff = () => {
-    localStream?.getVideoTracks().forEach(track => {
+    myStream?.getVideoTracks().forEach(track => {
       track.enabled = !track.enabled
     })
   }
 
+  // TODO Edit Call Button so it fetches user's local media stream on click
   return (
-    <>
-      <div>
-      <button className="btn" onClick={handleClick}>WEBRTC TEST</button>
-      <button onClick={callClick} className='btn btn-primary m-5'>Call Button</button>
-      <button onClick={answerClick} className="btn btn-accent">Answer Button</button>
-      </div>
+    <div className="flex flex-col items-center justify-center w-full h-full">
 
-      <video id="myVideo" ref={video => {
-        if(video) video.srcObject = localStream
-      }} autoPlay playsInline/>
-      <div>
-        <button onClick={handleMute} className='btn btn-sm btn-error m-2' >Mute</button>
-        <button onClick={handleCamOff} className="btn btn-sm btn-info m-2" >Turn Off Cam</button>
-      </div>
+      { (!callStarted && !offers.length) &&
+        <div className="flex items-center justify-center w-full h-full">
+          <button onClick={ handleStartCall } className='btn btn-primary btn-lg m-5'>Start Call</button>
+        </div>
+      }
+      { (callStarted && !callAnswered) &&
+        offers.map((offer: any) => {
+          if (offer.offererUser === myId) return;
+          return <button key={ `offer-${offer.offererUser}` } onClick={ () => handleAnswerCall(offer) } className="btn btn-accent">{ `Answer ${offer.offererUser}` }</button>
+        })
+      }
+      {/* { offersAvailable && !didIOffer.current &&
+        offers.map((offer: any) => {
+          if (offer.offererUser === myId) return;
+          return <button key={ `offer-${offer.offererUser}` } onClick={ () => handleAnswerCall(offer) } className="btn btn-accent">{ `Answer ${offer.offererUser}` }</button>
+        })
+      } */}
 
+      { (callStarted && myStream) &&
+        <>
+          <video id="myVideo" className='border-4 border-primary' ref={ video => {
+            if (video) video.srcObject = myStream as MediaProvider
+          } } autoPlay playsInline />
+          <div>
+            <button onClick={ handleMute } className='btn btn-sm btn-error m-2' >Mute</button>
+            <button onClick={ handleCamOff } className="btn btn-sm btn-info m-2" >Turn Off Cam</button>
+          </div>
+        
+        { remoteStreams.map(stream => {
+          return (
+            <video className='border-4 border-white' ref={ video => {
+              if (video) video.srcObject = stream as MediaProvider
+            } } autoPlay playsInline />
+          )
+        }) }
+        </>
+      }
+      {/* 
       <video id="remoteVideo" ref={video => {
         if(video) video.srcObject = remoteStream
-      }} autoPlay playsInline />
-      
-    </>
+      }} autoPlay playsInline /> */}
+
+    </div>
   )
 }
 

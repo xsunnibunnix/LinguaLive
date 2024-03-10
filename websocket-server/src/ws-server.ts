@@ -3,7 +3,7 @@
 // app.use(cors());
 
 import { createServer } from "http";
-import { Server } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 const express = require('express');
 const app = express();
 
@@ -22,13 +22,91 @@ const io = new Server(expressServer, {
 
 expressServer.listen(PORT, () => console.log(`Listening on port ${PORT}`));
 
-io.on('connection', () => console.log('Received new socket connection'));
 
-const clients = new Map();
-const rooms: Record<string, string[]> = {}
-let offers: object;
-let answers: object = { type: 'answer', test: 'test' };
-const iceCandidates: object[] = [];
+let offers:any[] = [];
+// const connectedSockets: any = [];
+
+
+io.on('connection', (socket) => {
+  const user = socket.handshake.auth.user;
+  console.log(`Received new socket connection from ${user}`);
+
+  // TODO emit a new user joined the room
+
+  // connectedSockets.push({
+  //   id: socket.id,
+  //   user
+  // });
+  // console.log(connectedSockets)
+
+  if (offers.length) {
+    socket.emit('availableOffers', offers);
+  }
+
+  socket.on('newOffer', newOffer => {
+    const alreadyOffered = offers.find(o => o.offererUser === user);
+    if (alreadyOffered) {
+      console.log('already offered')
+      alreadyOffered.offer = newOffer;
+    } else {
+      console.log('Received new offer from ', user);
+      offers.push({
+        offererUser: user,
+        offer: newOffer,
+        offerIceCandidates: [],
+        answererUser: null,
+        answer: null,
+        answererIceCandidates: []
+      });
+    }
+
+    socket.broadcast.emit('newOfferAwaiting', offers.slice(-1));
+  });
+
+  socket.on('newAnswer', ({ answeredOffer, answer }, ackFunc) => {
+    console.log('Received an answer from', user);
+    const foundOffer = offers.find(o => o.offererUser === answeredOffer);
+    if (foundOffer) {
+      foundOffer.answererUser = user;
+      foundOffer.answer = answer;
+    };
+    ackFunc(foundOffer.offerIceCandidates);
+    socket.broadcast.emit('answerResponse', { user, answer });
+  });
+
+  socket.on('sendIceCandidate', ({ iceCandidate, iceUser, didIOffer }) => {
+    console.log('received ice candidate on server')
+    // console.log(`didIOffer on server from ${user}: `, didIOffer.current)
+    if (didIOffer.current) {
+      console.log('Receiving ice candidates from offerer')
+      const foundOffer = offers.find(o => o.offererUser === iceUser);
+      if (foundOffer) {
+        foundOffer.offerIceCandidates.push(iceCandidate);
+      }
+      socket.broadcast.emit('receivedIceCandidateFromServer', iceCandidate);
+    } else {
+      console.log('Receiving ice candidates from answerer')
+      const foundOffer = offers.find(o => o.answererUser === iceUser);
+      if (foundOffer) {
+        foundOffer.answererIceCandidates.push(iceCandidate);
+      };
+      socket.broadcast.emit('receivedIceCandidateFromServer', iceCandidate);
+    }
+  });
+});
+
+
+
+io.off('connection', () => {
+  offers = [];
+  console.log(offers)
+})
+
+// const clients = new Map();
+// const rooms: Record<string, string[]> = {}
+// let offers: object;
+// let answers: object = { type: 'answer', test: 'test' };
+// const iceCandidates: object[] = [];
 
 
 

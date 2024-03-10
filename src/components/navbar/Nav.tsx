@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import DesktopNav from "./DesktopNav";
 import MobileNav from "./MobileNav";
+import logo from '../../public/logo.png'
 
 // TODO Implement mobile navbar functionality
 // TODO Add a dashboard / profile page
@@ -15,7 +16,7 @@ const Nav = () => {
     <nav className="navbar justify-between bg-base-100 bg-opacity-20 text-neutral sticky w-full mb-5 p-4 px-6">
       <Link href='/' className="flex gap-2 items-center justify-center">
         <Image
-          src='/logo.png'
+          src={logo}
           alt='logo'
           width={ 45 }
           height={ 45 }

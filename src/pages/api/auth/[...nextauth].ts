@@ -4,6 +4,7 @@ import GoogleProvider from "next-auth/providers/google";
 import GithubProvider from "next-auth/providers/github";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from 'bcrypt';
+import { v4 as uuid } from 'uuid';
 import dbConnect from "@/lib/dbConnect";
 import User from "../../../../models/User";
 
@@ -19,7 +20,7 @@ export const authOptions: NextAuthOptions = {
       id: 'credentials',
       name: "Credentials",
       credentials: {
-        username: { label: "Username", type: "text" },
+        username: { label: "Username", type: "string" },
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials, req) {
@@ -34,14 +35,19 @@ export const authOptions: NextAuthOptions = {
 
           // check if user already exists
           const user = await User.findOne({ username });
-          console.log('user', user);
           if (!user) return null;
 
           // check if passwords match
           const passwordsMatch = await bcrypt.compare(password, user.password);
-          console.log('passwords match: ', passwordsMatch);
           if (!passwordsMatch) return null;
-          return user;
+          const sessionUser = {
+            id: uuid(),
+            name: user.username,
+            email: user.email,
+            image: user.image || null,
+          }
+          console.log('in authorize callback', sessionUser);
+          return sessionUser;
         } catch (error) {
           throw new Error('credentials invalid or database connection failed in auth route')
         }
@@ -60,11 +66,22 @@ export const authOptions: NextAuthOptions = {
     strategy: 'jwt',
   },
   secret: process.env.NEXTAUTH_SECRET,
-  debug: process.env.NODE_ENV === 'development',
+  // debug: process.env.NODE_ENV === 'development',
   pages: {
     signIn: '/auth/login',
     newUser: '/auth/signup'
   },
+  callbacks: {
+    async session({ session, token, user }) {
+      return {
+        ...session,
+        user: {
+          ...session.user,
+          id: token.sub,
+        }
+      };
+    }
+  }
 }
 
 export default NextAuth(authOptions);

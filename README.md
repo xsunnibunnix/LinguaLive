@@ -7,7 +7,7 @@ Practice a language and connect with native speakers or other language enthusias
 First, navigate to `/websocket-server` and run:
 
 ```bash
-npm run start
+npm run dev
 ```
 
 Then, in a separate terminal, run the development server from the root directory:
