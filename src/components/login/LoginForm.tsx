@@ -12,7 +12,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ form }) => {
     const username: String = form.username.value;
     const password: String = form.password.value;
     if (( username.trim() !== '') && ( password.trim() !== '')) {
-      const res = await signIn('credentials', {
+      await signIn('credentials', {
         username,
         password,
         redirect: false

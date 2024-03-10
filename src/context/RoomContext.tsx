@@ -6,8 +6,6 @@ import { useSession } from 'next-auth/react';
 
 const RoomContext = createContext<Socket | null>(null);
 const SERVER_URL = 'http://localhost:4000';
-// TODO replace this with a real userId from MongoDB database and/or create sessions and implement a sessionId
-
 
 export const RoomProvider = ({ children }: { children: React.ReactNode }) => {
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -15,13 +13,12 @@ export const RoomProvider = ({ children }: { children: React.ReactNode }) => {
   const user = data?.user.id;
   
   useEffect(() => {
-    // console.log('in RoomProvider - user: ', user);
     if (!user) return;
     const connection = io(SERVER_URL, {
       auth: { user }
     });
     setSocket(connection);
-  }, [data]);
+  }, [data, user]);
 
   socket?.on('connect', () => console.log('Client socket connected to server'));
   socket?.on('connect_error', () => console.log('Error connecting socket'));

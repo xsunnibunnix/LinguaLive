@@ -16,8 +16,7 @@ type chatBoxStateType = {
 export default function Chatroom() {
   const router = useRouter();
   const id = router.query.id;
-  console.log(id);
-  const io = useRoomContext();
+  const socket = useRoomContext();
 
   // useEffect(() => {
   //   ws.addEventListener('open', () => {

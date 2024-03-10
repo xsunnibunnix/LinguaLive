@@ -33,10 +33,6 @@ export const getServerSideProps: GetServerSideProps = async () => {
 function Home({ chatrooms }: HomeProps) {
   const router = useRouter();
 
-  // const joinRoom = async (id: string) => {
-  //   await ws.send(JSON.stringify({ type: 'create-room', room: id }));
-  // };
-
   // TODO Add a check if there is a session before pushing to the room
   const joinRoom = (id:any) => router.push(`/chatroom/${id}`);
 

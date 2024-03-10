@@ -9,14 +9,10 @@ const webrtc = () => {
   const socket = useRoomContext();
   const [callStarted, setCallStarted] = useState(false);
   const [callAnswered, setCallAnswered] = useState(false);
-  // const [offersAvailable, setOffersAvailable] = useState(false);
   const [offers, setOffers] = useState<any[]>([]);
   const [remoteStreams, setRemoteStreams] = useState<MediaStream[]>([]);
   const [myStream, setMyStream] = useState<MediaStream | null>(null);
   const { peerConnection, myId, didIOffer, iceCandidateListener, stateChangeListener } = usePeer(socket!);
-
-  // console.log('offer state', offers);
-  // console.log('didIOffer', didIOffer.current);
 
 
   // Peer Connection and Socket listeners
@@ -98,7 +94,6 @@ const webrtc = () => {
       console.log(error);
     }
 
-    console.log('offer in handleAnswerCall', offer);
     try {
       await peerConnection?.setRemoteDescription(offer);
       console.log('Creating answer...');
@@ -107,7 +102,7 @@ const webrtc = () => {
       const offerIceCandidates: RTCIceCandidate[] = await socket?.emitWithAck('newAnswer', { answeredOffer: offererUser, answer });
       offerIceCandidates.forEach(c => {
         peerConnection?.addIceCandidate(c);
-        console.log("Adding offerer ice candidates")
+        console.log("Adding offerer ice candidates");
       });
       socket?.on('receivedIceCandidateFromServer', (iceCandidate: RTCIceCandidate) => {
         peerConnection?.addIceCandidate(iceCandidate);
@@ -119,6 +114,8 @@ const webrtc = () => {
 
   }
 
+  // TODO Emit mute or camera off event to room with user id
+  // TODO Implement a hangup button and figure out how to close connection if browser tab or window closes. Need to remove user's stream from state
   const handleMute = () => {
     myStream?.getAudioTracks().forEach(track => {
       track.enabled = !track.enabled
@@ -130,7 +127,8 @@ const webrtc = () => {
     })
   }
 
-  // TODO Edit Call Button so it fetches user's local media stream on click
+  // TODO Edit styling so user's own stream is small at top right and active video is large in center
+  // TODO How can you tell which user is speaking and highlight them as the active speaker?
   return (
     <div className="flex flex-col items-center justify-center w-full h-full">
 
@@ -145,12 +143,6 @@ const webrtc = () => {
           return <button key={ `offer-${offer.offererUser}` } onClick={ () => handleAnswerCall(offer) } className="btn btn-accent">{ `Answer ${offer.offererUser}` }</button>
         })
       }
-      {/* { offersAvailable && !didIOffer.current &&
-        offers.map((offer: any) => {
-          if (offer.offererUser === myId) return;
-          return <button key={ `offer-${offer.offererUser}` } onClick={ () => handleAnswerCall(offer) } className="btn btn-accent">{ `Answer ${offer.offererUser}` }</button>
-        })
-      } */}
 
       { (callStarted && myStream) &&
         <>
@@ -161,20 +153,16 @@ const webrtc = () => {
             <button onClick={ handleMute } className='btn btn-sm btn-error m-2' >Mute</button>
             <button onClick={ handleCamOff } className="btn btn-sm btn-info m-2" >Turn Off Cam</button>
           </div>
-        
-        { remoteStreams.map(stream => {
-          return (
-            <video className='border-4 border-white' ref={ video => {
-              if (video) video.srcObject = stream as MediaProvider
-            } } autoPlay playsInline />
-          )
-        }) }
+
+          { remoteStreams.map(stream => {
+            return (
+              <video className='border-4 border-white' ref={ video => {
+                if (video) video.srcObject = stream as MediaProvider
+              } } autoPlay playsInline />
+            )
+          }) }
         </>
       }
-      {/* 
-      <video id="remoteVideo" ref={video => {
-        if(video) video.srcObject = remoteStream
-      }} autoPlay playsInline /> */}
 
     </div>
   )

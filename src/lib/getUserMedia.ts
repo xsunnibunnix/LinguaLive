@@ -1,5 +1,3 @@
-// import { useEffect, useState, useRef } from "react";
-
 const getMediaStream = async () => {
   // const [myStream, setMyStream] = useState<MediaStream | null>(null);
   // const isStreamSet = useRef(false);

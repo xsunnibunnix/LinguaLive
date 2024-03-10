@@ -21,13 +21,13 @@ const usePeer = (socket: Socket) => {
 
   const stateChangeListener = (e: Event) => {
     console.log('signaling stage change', peerConnection?.signalingState);
-    console.log(e);
+    // console.log(e);
   };
 
   const iceCandidateListener = (e: RTCPeerConnectionIceEvent) => {
     if (!socket) return;
 
-    console.log('in iceCandidate listener', e)
+    console.log('in iceCandidate listener')
     if (e.candidate) {
       socket?.emit('sendIceCandidate', {
         iceCandidate: e.candidate,
